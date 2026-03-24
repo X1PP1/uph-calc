@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPH Calc</title>
+
+<style>
+body {
+    font-family: -apple-system;
+    background: #111;
+    color: white;
+    padding: 15px;
+}
+
+h2 { margin-top: 20px; }
+
+input, button {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+}
+
+input { width: 100%; }
+
+button {
+    width: 100%;
+    background: #333;
+    color: white;
+}
+
+.system {
+    display: flex;
+    justify-content: space-between;
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+.system button {
+    width: auto;
+    background: red;
+}
+
+.big {
+    font-size: 32px;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.red { color: #ff4d4d; }
+.yellow { color: #ffd24d; }
+.green { color: #4dff88; }
+
+.small {
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+.log {
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>UPH Calc</h1>
+
+<h2>Рабочие часы</h2>
+<input type="number" id="hours">
+
+<h2>Добавить систему</h2>
+<input type="text" id="name" placeholder="Название">
+<input type="number" id="uph" placeholder="UPH">
+<button onclick="addSystem()">Добавить</button>
+
+<h2>Системы</h2>
+<div id="systems"></div>
+
+<h2>Результат</h2>
+<div id="percent" class="big">0%</div>
+<div class="small" id="count">0 систем</div>
+
+<button onclick="undo()">−1 система</button>
+<button onclick="toggleLog()">Показать / скрыть список</button>
+
+<div id="log" class="log"></div>
+
+<button onclick="reset()">Сбросить смену</button>
+
+<script>
+let systems = JSON.parse(localStorage.getItem('systems')) || [];
+let doneTime = parseFloat(localStorage.getItem('doneTime')) || 0;
+let history = JSON.parse(localStorage.getItem('history')) || [];
+let hours = parseFloat(localStorage.getItem('hours')) || 8;
+
+document.getElementById('hours').value = hours;
+
+function save() {
+    localStorage.setItem('systems', JSON.stringify(systems));
+    localStorage.setItem('doneTime', doneTime);
+    localStorage.setItem('history', JSON.stringify(history));
+    localStorage.setItem('hours', document.getElementById('hours').value);
+}
+
+function addSystem() {
+    let name = document.getElementById('name').value;
+    let uph = parseFloat(document.getElementById('uph').value);
+
+    if (!name || !uph) return;
+
+    systems.push({ name, uph });
+    save();
+    render();
+}
+
+function removeSystem(index) {
+    systems.splice(index, 1);
+    save();
+    render();
+}
+
+function addWork(system) {
+    doneTime += 1 / system.uph;
+    history.push(system);
+    save();
+    update();
+}
+
+function undo() {
+    if (history.length === 0) return;
+
+    let last = history.pop();
+    doneTime -= 1 / last.uph;
+
+    save();
+    update();
+}
+
+function update() {
+    hours = parseFloat(document.getElementById('hours').value) || 8;
+
+    let percent = (doneTime / hours) * 100;
+    let el = document.getElementById('percent');
+
+    el.innerText = percent.toFixed(1) + "%";
+
+    el.className = "big";
+    if (percent < 95) el.classList.add("red");
+    else if (percent < 105) el.classList.add("yellow");
+    else el.classList.add("green");
+
+    document.getElementById('count').innerText = history.length + " систем";
+
+    renderLog();
+    save();
+}
+
+function renderLog() {
+    let log = document.getElementById('log');
+    log.innerHTML = "";
+
+    history.forEach((s, i) => {
+        let div = document.createElement('div');
+        div.innerText = `${i + 1}. ${s.name} (UPH: ${s.uph})`;
+        log.appendChild(div);
+    });
+}
+
+function toggleLog() {
+    let log = document.getElementById('log');
+    log.style.display = log.style.display === "none" ? "block" : "none";
+}
+
+function reset() {
+    doneTime = 0;
+    history = [];
+    save();
+    update();
+}
+
+function render() {
+    let container = document.getElementById('systems');
+    container.innerHTML = "";
+
+    systems.forEach((s, i) => {
+        let div = document.createElement('div');
+        div.className = "system";
+
+        div.innerHTML = `
+            <span onclick='addWork(${JSON.stringify(s)})'>
+                ${s.name} (UPH: ${s.uph})
+            </span>
+            <button onclick="removeSystem(${i})">X</button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+render();
+update();
+</script>
+
+</body>
+</html>
