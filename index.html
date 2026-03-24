@@ -67,20 +67,18 @@ button {
     margin-top: 10px;
     display: none;
 }
+
+.section {
+    margin-top: 25px;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+}
 </style>
 </head>
 
 <body>
 
 <h1>UPH Calc</h1>
-
-<h2>Рабочие часы</h2>
-<input type="number" id="hours">
-
-<h2>Добавить систему</h2>
-<input type="text" id="name" placeholder="Название">
-<input type="number" id="uph" placeholder="UPH">
-<button onclick="addSystem()">Добавить</button>
 
 <h2>Системы</h2>
 <div id="systems"></div>
@@ -95,6 +93,16 @@ button {
 <div id="log" class="log"></div>
 
 <button onclick="reset()">Сбросить смену</button>
+
+<div class="section">
+<h2>Рабочие часы</h2>
+<input type="number" id="hours">
+
+<h2>Добавить систему</h2>
+<input type="text" id="name" placeholder="Название">
+<input type="number" id="uph" placeholder="UPH">
+<button onclick="addSystem()">Добавить</button>
+</div>
 
 <script>
 let systems = JSON.parse(localStorage.getItem('systems')) || [];
@@ -111,6 +119,13 @@ function save() {
     localStorage.setItem('hours', document.getElementById('hours').value);
 }
 
+function sortSystems() {
+    systems.sort((a, b) => {
+        if (a.uph !== b.uph) return a.uph - b.uph;
+        return a.name.localeCompare(b.name);
+    });
+}
+
 function addSystem() {
     let name = document.getElementById('name').value;
     let uph = parseFloat(document.getElementById('uph').value);
@@ -118,6 +133,7 @@ function addSystem() {
     if (!name || !uph) return;
 
     systems.push({ name, uph });
+    sortSystems();
     save();
     render();
 }
@@ -154,8 +170,9 @@ function update() {
     el.innerText = percent.toFixed(1) + "%";
 
     el.className = "big";
-    if (percent < 95) el.classList.add("red");
-    else if (percent < 105) el.classList.add("yellow");
+
+    if (percent < 90) el.classList.add("red");
+    else if (percent < 100) el.classList.add("yellow");
     else el.classList.add("green");
 
     document.getElementById('count').innerText = history.length + " систем";
@@ -188,6 +205,8 @@ function reset() {
 }
 
 function render() {
+    sortSystems();
+
     let container = document.getElementById('systems');
     container.innerHTML = "";
 
